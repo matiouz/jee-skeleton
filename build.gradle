@@ -1,0 +1,45 @@
+apply plugin: 'war'
+
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:latest.release'
+    providedCompile 'javax:javaee-api:7.0'
+    testCompile 'junit:junit:latest.release'
+}
+
+
+task explodedWar(type: Copy) {
+    // create a folder with the war extension in the wildfly deployments directory (seems like it's the only solution to deploy an exploded war)
+    // Actually we leave the exploded war in the build folder so that it gets deleted by the clean task. So, remember to create a symbolic link to this folder:
+    // ln -s ~/devel/webAppTest/build/explodedWar/ $WILDFLY_HOME/standalone/deployments/webAppTest.war
+
+    into "$buildDir/explodedWar"
+    with war
+    
+    // Create a .dodeploy file to indicate wildfly to deploy the war
+    File file = new File(System.getenv("WILDFLY_HOME") + '/standalone/deployments/' + tasks.war.archiveName + '.dodeploy')
+    file << ("created by me")
+}
+war.dependsOn explodedWar
+
+
+/*
+Alternative to explodedWar task: deploy using commandLine
+but it only allows to deploy zipped war, so can't modify resources dynamically
+task myDeploy(type:Exec){
+    workingDir System.getenv("WILDFLY_HOME") + '/bin'
+    commandLine ('jboss-cli.sh', '--connect', '--command="deploy --force ' + "$buildDir/exploded" +  '"')
+
+    //store the output instead of printing to the console:
+    //standardOutput = new ByteArrayOutputStream()
+
+    //extension method myDeploy.output() can be used to obtain the output:
+    //ext.output = {
+    //  return standardOutput.toString()
+    //}
+}
+*/
